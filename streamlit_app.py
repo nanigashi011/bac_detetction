@@ -1091,7 +1091,7 @@ if uploaded_file is not None:
                     cols = st.columns(min(5, len(frames)))
                     for i, (col, frame) in enumerate(zip(cols, frames[:5])):
                         with col:
-                            st.image(frame, caption=f"Frame {i+1}", use_container_width=True)
+                            st.image(frame, caption=f"Frame {i+1}", use_column_width=True)
                     
                     # If more than 5 frames, show a note
                     if len(frames) > 5:
@@ -1165,3 +1165,4 @@ if uploaded_file is not None:
                                 file_name="waste_collection_analysis.csv",
                                 mime="text/csv",
                             )
+
