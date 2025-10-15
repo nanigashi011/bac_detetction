@@ -923,45 +923,41 @@ def analyze_video_frames(frames, api_key):
     progress_bar.progress(30)
     status_text.text("Sending images to AI for analysis...")
     
-   try:
-    # Using the OpenAI API
-    import openai
-    openai.api_key = api_key
-    
-    # Create a list of messages for the API call
-    messages = [
-        {"role": "system", "content": system_prompt},
-        {"role": "user", "content": [
-            {"type": "text", "text": "Analyze the following video frames as instructed."}
-        ]}
-    ]
-    
-    # Add each image to the user message content
-    for img_b64 in images_b64:
-        messages[1]["content"].append({
-            "type": "image_url",
-            "image_url": {"url": img_b64}
-        })
-    
-    # Call OpenAI API with GPT-4 Vision capabilities
-    response = openai.ChatCompletion.create(
-        model="gpt-4o",
-        messages=messages,
-        max_tokens=800
-    )
-    
-    # Get content from response
-    result = response.choices[0].message.content
+    try:
+        # Using the OpenAI API (v1.0+ syntax)
+        from openai import OpenAI
+        client = OpenAI(api_key=api_key)
+        
+        # Create a list of messages for the API call
+        messages = [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": [
+                {"type": "text", "text": "Analyze the following video frames as instructed."}
+            ]}
+        ]
+        
+        # Add each image to the user message content
+        for img_b64 in images_b64:
+            messages[1]["content"].append({
+                "type": "image_url",
+                "image_url": {"url": img_b64}
+            })
+        
+        # Call OpenAI API with GPT-4 Vision capabilities
+        response = client.chat.completions.create(
+            model="gpt-4o",
+            messages=messages,
+            max_tokens=800
+        )
+        
+        # Get content from response
+        result = response.choices[0].message.content
         
         progress_bar.progress(90)
         status_text.text("Processing analysis results...")
         
         # Parse result
         try:
-            # Print the raw response for debugging
-            #st.text("Raw API Response:")
-            #st.code(result, language="text")
-            
             # Check if the response contains markdown code block indicators
             if '```' in result:
                 # Try to extract JSON from within code blocks
@@ -1061,7 +1057,6 @@ def analyze_video_frames(frames, api_key):
         status_text.empty()
         st.error(f"Error during analysis: {str(e)}")
         return None
-
 # Session state initialization
 if 'frames' not in st.session_state:
     st.session_state.frames = []
@@ -1165,5 +1160,6 @@ if uploaded_file is not None:
                                 file_name="waste_collection_analysis.csv",
                                 mime="text/csv",
                             )
+
 
 
