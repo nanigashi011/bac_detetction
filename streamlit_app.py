@@ -216,7 +216,7 @@ def analyze_video_frames(frames, api_key):
     
     try:
         # For older versions of OpenAI
-        openai.api_key = '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'
+        openai.api_key = ''
         
         # Create a list of messages for the API call
         messages = [
@@ -1160,6 +1160,7 @@ if uploaded_file is not None:
                                 file_name="waste_collection_analysis.csv",
                                 mime="text/csv",
                             )
+
 
 
 
