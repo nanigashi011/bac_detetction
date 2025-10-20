@@ -895,6 +895,7 @@ def pil_to_base64(im):
     img_str = base64.b64encode(buffered.getvalue()).decode("utf-8")
     return f"data:image/jpeg;base64,{img_str}"
 
+'''
 def analyze_video_frames(frames, api_key):
     """Analyze video frames using OpenAI API"""
     if not frames:
@@ -1058,6 +1059,154 @@ def analyze_video_frames(frames, api_key):
         status_text.empty()
         st.error(f"Error during analysis: {str(e)}")
         return None
+'''
+def analyze_video_frames(frames, api_key):
+    """Analyze video frames using OpenAI API"""
+    if not frames:
+        st.error("No frames to analyze.")
+        return None
+    
+    # Convert images to base64
+    images_b64 = [pil_to_base64(frame) for frame in frames]
+    
+    # Create progress indicators
+    progress_bar = st.progress(0)
+    status_text = st.empty()
+    status_text.text("Preparing analysis...")
+    progress_bar.progress(10)
+
+    # Build system prompt for API request
+    system_prompt = (
+        "You are a computer vision analyst specialized in waste collection scenes. "
+        "You will receive several frames extracted from a short video (20 seconds). "
+        "Analyze them in temporal order and output a structured JSON with:\n"
+        "  total_bacs, small_bacs, large_bacs, plastic_bacs, metal_bacs, empty_bacs, full_bacs, broken_bacs, "
+        "emptying_events, simultaneous_emptying, refill_events, notes.\n"
+        "Respond strictly in JSON only — no explanations."
+    )
+    
+    progress_bar.progress(30)
+    status_text.text("Sending images to AI for analysis...")
+    
+    try:
+        # ✅ UPDATED for openai>=1.0.0
+        from openai import OpenAI
+        client = OpenAI(api_key=api_key)
+        
+        # Create a list of messages for the API call
+        messages = [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": [
+                {"type": "text", "text": "Analyze the following video frames as instructed."}
+            ]}
+        ]
+        
+        # Add each image to the user message content
+        for img_b64 in images_b64:
+            messages[1]["content"].append({
+                "type": "image_url",
+                "image_url": {"url": img_b64}
+            })
+        
+        # ✅ UPDATED call syntax
+        response = client.chat.completions.create(
+            model="gpt-4o",
+            messages=messages,
+            max_tokens=800
+        )
+        
+        # ✅ UPDATED response parsing
+        result = response.choices[0].message.content
+        
+        progress_bar.progress(90)
+        status_text.text("Processing analysis results...")
+        
+        # Parse result (unchanged)
+        try:
+            if '```' in result:
+                import re
+                json_blocks = re.findall(r'```(?:json)?\s*([\s\S]*?)```', result)
+                if json_blocks:
+                    cleaned_result = json_blocks[0].strip()
+                else:
+                    parts = result.split('```')
+                    if len(parts) >= 3:
+                        cleaned_result = parts[1]
+                        if cleaned_result.startswith('json'):
+                            cleaned_result = cleaned_result[4:].strip()
+                    else:
+                        cleaned_result = result
+            else:
+                cleaned_result = result
+            
+            st.text("Cleaned Response :")
+            st.code(cleaned_result, language="json")
+            
+            result_json = json.loads(cleaned_result)
+            progress_bar.progress(100)
+            status_text.text("Analysis completed!")
+            time.sleep(0.5)
+            status_text.empty()
+            progress_bar.empty()
+            
+            st.empty()
+            st.empty()
+            st.empty()
+            st.empty()
+            
+            return result_json
+            
+        except json.JSONDecodeError as e:
+            try:
+                import re
+                json_pattern = re.compile(r'\{[\s\S]*\}')
+                match = json_pattern.search(result)
+                if match:
+                    potential_json = match.group(0)
+                    fallback_result = json.loads(potential_json)
+                    st.warning("Used fallback JSON extraction method. Results may not be complete.")
+                    progress_bar.empty()
+                    status_text.empty()
+                    return fallback_result
+            except:
+                pass
+                
+            st.error(f"Error: AI response is not valid JSON. Details: {str(e)}")
+            progress_bar.empty()
+            status_text.empty()
+            
+            try:
+                import re
+                pairs = re.findall(r'"([^"]+)":\s*([^,\n]+)', result)
+                if pairs:
+                    manual_json = {}
+                    for key, value in pairs:
+                        try:
+                            if value.strip().isdigit():
+                                manual_json[key] = int(value.strip())
+                            elif value.strip() in ["true", "false"]:
+                                manual_json[key] = value.strip() == "true"
+                            elif value.strip().startswith('"') and value.strip().endswith('"'):
+                                manual_json[key] = value.strip().strip('"')
+                            else:
+                                manual_json[key] = value.strip()
+                        except:
+                            manual_json[key] = value.strip()
+                    
+                    if manual_json:
+                        st.warning("Created a partial JSON from the response. Some data may be missing or incorrect.")
+                        return manual_json
+            except:
+                pass
+            
+            return None
+        
+    except Exception as e:
+        progress_bar.empty()
+        status_text.empty()
+        st.error(f"Error during analysis: {str(e)}")
+        return None
+
 # Session state initialization
 if 'frames' not in st.session_state:
     st.session_state.frames = []
@@ -1161,6 +1310,7 @@ if uploaded_file is not None:
                                 file_name="waste_collection_analysis.csv",
                                 mime="text/csv",
                             )
+
 
 
 
