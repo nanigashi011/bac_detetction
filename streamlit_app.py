@@ -910,56 +910,7 @@ def analyze_video_frames(frames, api_key):
     status_text.text("Preparing analysis...")
     progress_bar.progress(10)
 
-    
-
-
-
-    # Build system prompt for API request
-    system_prompt = (
-        "You are a computer vision analyst specialized in waste collection scenes. "
-        "You will receive several frames extracted from a short video (20 seconds). "
-        "Analyze them in temporal order and output a structured JSON with:\n"
-        "  total_bacs, small_bacs, large_bacs, plastic_bacs, metal_bacs, empty_bacs, full_bacs, broken_bacs, "
-        "emptying_events, simultaneous_emptying, refill_events, notes.\n"
-        "Respond strictly in JSON only — no explanations."
-    )
-    
-    progress_bar.progress(30)
-    status_text.text("Sending images to AI for analysis...")
-    
-    try:
-        # Using the OpenAI API
-        from openai import OpenAI
-        client = OpenAI(api_key=api_key)
-        
-        # Create a list of messages for the API call
-        messages = [
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": [
-                {"type": "text", "text": "Analyze the following video frames as instructed."}
-            ]}
-        ]
-        
-        # Add each image to the user message content
-        for img_b64 in images_b64:
-            messages[1]["content"].append({
-                "type": "image_url",
-                "image_url": {"url": img_b64}
-            })
-        
-        # Call OpenAI API with GPT-4 Vision capabilities
-        response = client.chat.completions.create(
-            model="gpt-4.1-mini",
-            messages=messages,
-            max_tokens=800
-        )
-        
-        # Get content from response
-        result = response.choices[0].message.content
-        
-        progress_bar.progress(90)
-        status_text.text("Processing analysis results...")
-'''
+   
     # Build system prompt for API request
     system_prompt = (
         "You are a computer vision analyst specialized in waste collection scenes. "
@@ -1005,7 +956,7 @@ def analyze_video_frames(frames, api_key):
         
         progress_bar.progress(90)
         status_text.text("Processing analysis results...")
-'''        
+        
         # Parse result
         try:
             # Check if the response contains markdown code block indicators
@@ -1210,6 +1161,7 @@ if uploaded_file is not None:
                                 file_name="waste_collection_analysis.csv",
                                 mime="text/csv",
                             )
+
 
 
 
